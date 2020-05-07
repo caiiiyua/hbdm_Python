@@ -1,12 +1,4 @@
 # -*- coding:utf-8 -*-
-"""
-简单卖平策略，仅做演示使用
-
-Author: Qiaoxiaofeng
-Date:   2020/01/10
-Email: andyjoe318@gmail.com
-"""
-# 策略实现
 import time
 from alpha import const
 from alpha.utils import tools
@@ -25,8 +17,10 @@ from alpha.tasks import LoopRunTask
 from alpha.order import ORDER_ACTION_SELL, ORDER_ACTION_BUY, ORDER_STATUS_FAILED, ORDER_STATUS_CANCELED, ORDER_STATUS_FILLED,\
     ORDER_TYPE_LIMIT, ORDER_TYPE_MARKET
 
+from alpha.const import DEFAULT_INTERVAL, HOURS
+import pandas as pd
 
-class MyStrategy:
+class MAMixStrategy:
 
     def __init__(self):
         """ 初始化
@@ -59,6 +53,8 @@ class MyStrategy:
         self.bid1_price = 0
         self.ask1_volume = 0
         self.bid1_volume = 0
+
+        self.last_klines = None
 
 
         # 交易模块
@@ -97,17 +93,31 @@ class MyStrategy:
         self.market = Market(**cc)
         
         # 1秒执行1次
-        LoopRunTask.register(self.on_ticker, 1)
+        LoopRunTask.register(self.on_ticker, DEFAULT_INTERVAL)
 
     async def on_ticker(self, *args, **kwargs):
         """ 定时执行任务
         """
-        ts_diff = int(time.time()*1000) - self.last_orderbook_timestamp
-        if ts_diff > self.orderbook_invalid_seconds * 1000:
-            logger.warn("received orderbook timestamp exceed:", self.strategy, self.symbol, ts_diff, caller=self)
+        refresh = False
+        logger.info("kline onticker:", self.market.klines[0], caller=self)
+        if self.market.klinerecords is None:
+            refresh = True
+        else:
+            last_updated_at = self.market.klinerecords['datetime'].at[self.market.klinerecords.shape[0] - 1]
+            logger.info("kline last_updated_at:", last_updated_at, caller=self)
+            diff = self.market.klines[0].timestamp / 1000 - last_updated_at
+            if diff >= HOURS:
+                refresh = True
+            else:
+                refresh = False
+        if refresh:
+            logger.info("Need to refresh kline records", caller=self)
+            await self.market.get_klinerecords()
             return
-        await self.cancel_orders()
-        # await self.place_orders()
+        
+        pdata = self.market.klinerecords
+        logger.info(" pdata: ", pdata.tail(5), caller=self)
+        
 
     async def cancel_orders(self):
         """  取消订单
@@ -185,7 +195,7 @@ class MyStrategy:
             self.market.klines 是最新的kline组成的队列，记录的是历史N次kline的数据。
             本回调所传的kline是最新的单次kline。
         """
-        logger.info("kline update:", kline, caller=self)
+        logger.debug("kline update:", kline, caller=self)
     
     async def on_event_trade_update(self, trade: MarketTrade):
         """ market trade更新

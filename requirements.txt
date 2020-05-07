@@ -14,3 +14,5 @@ pycparser==2.19
 typing==3.7.4.1
 typing-extensions==3.7.4.1
 yarl==1.4.2
+TA-Lib==0.4.17
+pandas==1.0.3

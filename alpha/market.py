@@ -39,7 +39,7 @@ class Market:
     """
 
     def __init__(self, platform=None, symbols=None, channels=None, orderbook_length=None, orderbooks_length=None,\
-                klines_length=None, trades_length=None, wss=None, \
+                klines_length=None, trades_length=None, host=None, wss=None, \
                 orderbook_update_callback=None, kline_update_callback=None, trade_update_callback=None, **kwargs):
         """initialize trade object."""
         kwargs["platform"] = platform
@@ -49,6 +49,7 @@ class Market:
         kwargs["orderbooks_length"] = orderbooks_length
         kwargs["klines_length"] = klines_length
         kwargs["trades_length"] = trades_length
+        kwargs["host"] = host
         kwargs["wss"] = wss
         kwargs["orderbook_update_callback"] = orderbook_update_callback
         kwargs["kline_update_callback"] = kline_update_callback
@@ -79,3 +80,10 @@ class Market:
     @property
     def trades(self):
         return self._m.trades
+    
+    @property
+    def klinerecords(self):
+        return self._m.klinerecords
+    
+    async def get_klinerecords(self):
+        await self._m.get_kline_history()

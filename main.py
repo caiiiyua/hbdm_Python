@@ -1,20 +1,10 @@
 # -*— coding:utf-8 -*-
-
-"""
-Huobi Swap Market Demo.
-
-Author: QiaoXiaofeng
-Date:   2020/1/10
-Email:  andyjoe318@gmail.com
-"""
-
-
 import sys
 
 
 def initialize():
-    from strategy.strategy import MyStrategy
-    MyStrategy()
+    from strategy.strategy_ma_mix import MAMixStrategy
+    MAMixStrategy()
 
 
 def main():

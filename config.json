@@ -12,10 +12,10 @@
         {
             "platform": "huobi_swap",
             "account": "account",
-            "host": "https://xxx.pro",
-            "wss": "wss://yyy.pro",
-            "access_key": "access_key",
-            "secret_key": "secret_key"
+            "host": "https://api.hbdm.com",
+            "wss": "wss://api.hbdm.com",
+            "access_key": "a18e6f7c-147cb2a3-a97fdaf4-bgrveg5tmn",
+            "secret_key": "66c127c0-76507ddd-645e0f6e-46500"
         }
     ],
     "MARKETS": [
@@ -28,7 +28,7 @@
             "orderbooks_length": 100,
             "klines_length": 100,
             "trades_length": 100,
-            "wss": "wss://yyy.pro"
+            "wss": "wss://api.hbdm.com"
 
         }
     ],
