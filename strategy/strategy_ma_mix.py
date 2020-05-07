@@ -18,6 +18,7 @@ from alpha.order import ORDER_ACTION_SELL, ORDER_ACTION_BUY, ORDER_STATUS_FAILED
     ORDER_TYPE_LIMIT, ORDER_TYPE_MARKET
 
 from alpha.const import DEFAULT_INTERVAL, HOURS
+import copy
 import pandas as pd
 
 class MAMixStrategy:
@@ -55,6 +56,7 @@ class MAMixStrategy:
         self.bid1_volume = 0
 
         self.last_klines = None
+        self.last_calculated_time = None
 
 
         # 交易模块
@@ -98,14 +100,15 @@ class MAMixStrategy:
     async def on_ticker(self, *args, **kwargs):
         """ 定时执行任务
         """
+        kline = self.market.klines[0]
         refresh = False
-        logger.info("kline onticker:", self.market.klines[0], caller=self)
+        logger.info("kline onticker:", kline, caller=self)
         if self.market.klinerecords is None:
             refresh = True
         else:
             last_updated_at = self.market.klinerecords['datetime'].at[self.market.klinerecords.shape[0] - 1]
             logger.info("kline last_updated_at:", last_updated_at, caller=self)
-            diff = self.market.klines[0].timestamp / 1000 - last_updated_at
+            diff = kline.timestamp / 1000 - last_updated_at
             if diff >= HOURS:
                 refresh = True
             else:
@@ -113,10 +116,29 @@ class MAMixStrategy:
         if refresh:
             logger.info("Need to refresh kline records", caller=self)
             await self.market.get_klinerecords()
+            self.last_klines = None
             return
         
-        pdata = self.market.klinerecords
-        logger.info(" pdata: ", pdata.tail(5), caller=self)
+        if self.last_klines is None:
+            self.last_klines = copy.copy(self.market.klinerecords)
+        last_klines = self.last_klines
+
+        close_price = float(kline.close)
+        last_price = last_klines['close'][last_klines.shape[0] - 1]
+        last_high = last_klines['high'][last_klines.shape[0] - 1]
+        last_low = last_klines['low'][last_klines.shape[0] - 1]
+
+        price_rate = last_price - close_price
+        last_klines['close'][last_klines.shape[0] - 1] = close_price
+        if close_price > last_high:
+            last_klines['high'][last_klines.shape[0] - 1] = close_price
+        if close_price < last_low:
+            last_klines['low'][last_klines.shape[0] - 1] = close_price
+        print("last_price: %.2f, new_price: %.2f, change_rate: %.2f" % (last_price, close_price, price_rate))
+        if not self.last_calculated_time or (kline.timestamp / 1000 - last_calculated_time) > 5:
+            # calculate(pdata)
+            last_calculated_time = kline.timestamp / 1000
+            logger.info("last_klines: ", last_klines.tail(5), caller=self)
         
 
     async def cancel_orders(self):
