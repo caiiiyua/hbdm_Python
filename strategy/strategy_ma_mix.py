@@ -108,9 +108,9 @@ class MAMixStrategy:
         df_data['K'] = rsv.ewm(com=2).mean()
         df_data['D'] = df_data['K'].ewm(com=2).mean()
         df_data['J'] = 3 * df_data['K'] - 2 * df_data['D']
-        df_data.index = kline_data['datetime'].values
-        df_data.index.name = 'datetime'
-        df_data = df_data.dropna()
+        # df_data.index = kline_data['datetime'].values
+        # df_data.index.name = 'datetime'
+        # df_data = df_data.dropna()
         # 计算KDJ指标金叉、死叉情况
         df_data['KDJ_CrossOver'] = ''
         kdj_position = df_data['K'] > df_data['D']
@@ -122,9 +122,12 @@ class MAMixStrategy:
         df_data = pd.DataFrame()
         df_data['EMA_FAST'] = talib.EMA(kline_data['close'], timeperiod=5)
         df_data['EMA_SLOW'] = talib.EMA(kline_data['close'], timeperiod=60)
-        df_data.index = kline_data['datetime'].values
-        df_data.index.name = 'datetime'
-        df_data = df_data.dropna()
+        print(df_data)
+        df_data['datetime'] = kline_data['datetime']
+        # df_data.index = kline_data['datetime'].values
+        # df_data.index.name = 'datetime'
+        # df_data = df_data.dropna()
+        print(df_data)
         # 计算KDJ指标金叉、死叉情况
         df_data['EMA_CrossOver'] = ''
         cross_position = df_data['EMA_FAST'] > df_data['EMA_SLOW']
@@ -141,47 +144,32 @@ class MAMixStrategy:
         kdj = kwargs["kdj"]
         ema = kwargs["ema"]
 
-        logger.info("type of the cci: ", type(cci), cci.shape)
-        logger.info("type of the macd_dif: ", type(macd_dif))
-        logger.info("type of the rsi: ", type(rsi), rsi.shape)
-        logger.info("type of the ema: ", type(ema), ema.shape)
-        logger.info("type of the kdj: ", type(kdj), kdj.shape)
-
         matrix_data = pd.DataFrame()
-        matrix_data.index = ema['datetime'].values
-        matrix_data.index.name = 'datetime'
-    
-        matrix_data.join(ema)
-        # matrix_data.join(ema['EMA_FAST'])
-        # matrix_data.join(ema['EMA_SLOW'])
-        # matrix_data.join(kdj['K'])
-        # matrix_data.join(kdj['D'])
-        # matrix_data.join(kdj['J'])
-        # matrix_data.join(kdj['KDJ_CrossOver'])
-        # matrix_data.join(cci)
+        matrix_data = pd.concat([ema, kdj, cci.rename("CCI"), rsi.rename("RSI"), macd_dif.rename("MACD_DIF"), macd_dea.rename("MACD_DEA"), macd_sig.rename("MACD_SIG")], axis=1)
         logger.info(matrix_data.tail(2))
+
 
         
     def calculate(self, klines):
         cci = talib.CCI(klines['high'], klines['low'], klines['close'], timeperiod=20)
-        # logger.info("CCI:")
-        # logger.info(cci.tail(2))
-        # logger.info("=====================================================================")
+        logger.debug("CCI:")
+        logger.debug(cci.tail(2))
+        logger.debug("=====================================================================")
         macd = talib.MACD(klines['close'])
-        # logger.info("MACD:")
-        # logger.info(macd[0].tail(2))
-        # logger.info("=====================================================================")
+        logger.debug("MACD:")
+        logger.debug(macd[0].tail(2))
+        logger.debug("=====================================================================")
         rsi = talib.RSI(klines['close'])
         
         kdj = self.KDJ(klines)
-        # logger.info("KDJ:")
-        # logger.info(kdj.tail(2))
-        # logger.info("=====================================================================")
+        logger.debug("KDJ:")
+        logger.debug(kdj.tail(2))
+        logger.debug("=====================================================================")
 
         ema = self.EMAMIX(klines)
-        # logger.info("EMA:")
-        # logger.info(ema.tail(2))
-        # logger.info("=====================================================================")
+        logger.debug("EMA:")
+        logger.debug(ema.tail(2))
+        logger.debug("=====================================================================")
 
         matrix = {
             "cci": cci,
