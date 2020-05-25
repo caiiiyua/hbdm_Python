@@ -13,8 +13,8 @@ import sys
 
 
 def initialize():
-    from strategy.strategy import MyStrategy
-    MyStrategy()
+    from strategy.strategy_ma_mix import MAMixStrategy
+    MAMixStrategy()
 
 
 def main():

@@ -18,12 +18,14 @@ from collections import deque
 from alpha.utils import logger
 from alpha.utils.websocket import Websocket
 from alpha.utils.decorator import async_method_locker
-from alpha.const import MARKET_TYPE_KLINE
+from alpha.const import MARKET_TYPE_KLINE, MARKET_TYPE_KLINE_60
 from alpha.order import ORDER_ACTION_BUY, ORDER_ACTION_SELL
 from alpha.tasks import SingleTask
 from alpha.orderbook import Orderbook
 from alpha.markettrade import Trade
 from alpha.kline import Kline
+from .huobi_swap_api import HuobiSwapRestAPI
+from pandas import json_normalize
 
 class HuobiSwapMarket(Websocket):
     """ Huobi Swap Market Server.
@@ -39,6 +41,7 @@ class HuobiSwapMarket(Websocket):
 
     def __init__(self, **kwargs):
         self._platform = kwargs["platform"]
+        self._host = kwargs.get("host", "https://api.hbdm.com")
         self._wss = kwargs.get("wss", "wss://www.hbdm.com")
         self._symbols = list(set(kwargs.get("symbols")))
         self._channels = kwargs.get("channels")
@@ -54,6 +57,9 @@ class HuobiSwapMarket(Websocket):
         self._orderbooks = deque(maxlen=self._orderbooks_length) 
         self._klines = deque(maxlen=self._klines_length)
         self._trades = deque(maxlen=self._trades_length)
+        self._klinerecords = None
+
+        self._rest_api = HuobiSwapRestAPI(self._host, "", "")
 
         url = self._wss + "/swap-ws"
         super(HuobiSwapMarket, self).__init__(url, send_hb_interval=5)
@@ -70,6 +76,10 @@ class HuobiSwapMarket(Websocket):
     @property
     def trades(self):
         return copy.copy(self._trades)
+    
+    @property
+    def klinerecords(self):
+        return copy.copy(self._klinerecords)
 
     async def _send_heartbeat_msg(self, *args, **kwargs):
         """ 发送心跳给服务器
@@ -150,7 +160,7 @@ class HuobiSwapMarket(Websocket):
             channel_type: channel name, kline / ticker / depth.
         """
         if channel_type == "kline":
-            channel = "market.{s}.kline.1min".format(s=symbol.upper())
+            channel = "market.{s}.kline.60min".format(s=symbol.upper())
         elif channel_type == "depth":
             channel = "market.{s}.depth.step6".format(s=symbol.upper())
         elif channel_type == "trade":
@@ -235,6 +245,35 @@ class HuobiSwapMarket(Websocket):
             self._trades.append(trade)
             SingleTask.run(self._trade_update_callback, copy.copy(trade))
             logger.debug("symbol:", symbol, "trade:", trade, caller=self)
+    
+    async def get_kline_history(self):
+        logger.info("get_kline_history", caller=self)
+        result, error = await self._rest_api.get_klinerecords(self._symbols[0])
+        if error:
+            return None, error
+        records = result["data"]
+        jdata = json_normalize(records)
+        self._klinerecords = jdata.rename(
+            columns={
+                "id": "datetime",
+                "vol": "volume"
+            }
+        )
+        # for d in records:
+        #     logger.info("record: ", d, caller=self)
+        #     info = {
+        #         "platform": self._platform,
+        #         "symbol": self._symbols[0],
+        #         "open": "%.8f" % d["open"],
+        #         "high": "%.8f" % d["high"],
+        #         "low": "%.8f" % d["low"],
+        #         "close": "%.8f" % d["close"],
+        #         "volume": "%.8f" % d["vol"],
+        #         "timestamp": int(d["id"]),
+        #         "kline_type": MARKET_TYPE_KLINE_60
+        #     }
+        #     kline = Kline(**info)
+        #     self._klinerecords.append(kline)
         
 
 

@@ -21,6 +21,12 @@ HUOBI_FUTURE = "huobi_future"  # Huobi Future https://huobiapi.github.io/docs/dm
 MARKET_TYPE_TRADE = "trade"
 MARKET_TYPE_ORDERBOOK = "orderbook"
 MARKET_TYPE_KLINE = "kline"
+MARKET_TYPE_KLINE_60 = "kline_60min"
 
 # REQUEST AGENT 
 USER_AGENT = "AlphaQuant" + VERSION
+
+# Others
+MINUTES = 60
+HOURS = 60 * MINUTES
+DEFAULT_INTERVAL = 10 #* MINUTES

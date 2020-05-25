@@ -79,6 +79,27 @@ class HuobiSwapRestAPI:
         success, error = await self.request("GET", uri, params=params)
         return success, error
 
+    async def get_klinerecords(self, contract_code=None, period="60min", size=200):
+        """ Get kline records information.
+
+        Args:
+            contract_code:  such as "BTC-USD".
+            period: such as 1min, 5min, 15min, 30min, 60min,4hour,1day, 1mon
+            size: from 1 to 2000
+
+        Returns:
+            success: Success results, otherwise it's None.
+            error: Error information, otherwise it's None.
+        """
+        uri = "/swap-ex/market/history/kline"
+        params = {
+            "contract_code": contract_code,
+            "period": period,
+            "size": size
+        }
+        success, error = await self.request("GET", uri, params=params)
+        return success, error
+    
     async def get_orderbook(self, contract_code):
         """ Get orderbook information.
 
