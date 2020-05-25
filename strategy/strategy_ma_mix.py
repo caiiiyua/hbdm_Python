@@ -60,7 +60,6 @@ class MAMixStrategy:
         self.last_klines = None
         self.last_calculated_time = None
 
-
         # 交易模块
         cc = {
             "strategy": self.strategy,
@@ -108,9 +107,6 @@ class MAMixStrategy:
         df_data['K'] = rsv.ewm(com=2).mean()
         df_data['D'] = df_data['K'].ewm(com=2).mean()
         df_data['J'] = 3 * df_data['K'] - 2 * df_data['D']
-        # df_data.index = kline_data['datetime'].values
-        # df_data.index.name = 'datetime'
-        # df_data = df_data.dropna()
         # 计算KDJ指标金叉、死叉情况
         df_data['KDJ_CrossOver'] = ''
         kdj_position = df_data['K'] > df_data['D']
@@ -122,12 +118,7 @@ class MAMixStrategy:
         df_data = pd.DataFrame()
         df_data['EMA_FAST'] = talib.EMA(kline_data['close'], timeperiod=5)
         df_data['EMA_SLOW'] = talib.EMA(kline_data['close'], timeperiod=60)
-        print(df_data)
         df_data['datetime'] = kline_data['datetime']
-        # df_data.index = kline_data['datetime'].values
-        # df_data.index.name = 'datetime'
-        # df_data = df_data.dropna()
-        print(df_data)
         # 计算KDJ指标金叉、死叉情况
         df_data['EMA_CrossOver'] = ''
         cross_position = df_data['EMA_FAST'] > df_data['EMA_SLOW']
@@ -147,6 +138,7 @@ class MAMixStrategy:
         matrix_data = pd.DataFrame()
         matrix_data = pd.concat([ema, kdj, cci.rename("CCI"), rsi.rename("RSI"), macd_dif.rename("MACD_DIF"), macd_dea.rename("MACD_DEA"), macd_sig.rename("MACD_SIG")], axis=1)
         logger.info(matrix_data.tail(2))
+        return matrix_data
 
 
         
@@ -180,7 +172,7 @@ class MAMixStrategy:
             "kdj": kdj,
             "ema": ema,
         }
-        self.sig_matrix(**matrix)
+        return self.sig_matrix(**matrix)
 
 
     async def on_ticker(self, *args, **kwargs):
@@ -222,7 +214,7 @@ class MAMixStrategy:
             last_klines['low'][last_klines.shape[0] - 1] = close_price
         print("last_price: %.2f, new_price: %.2f, change_rate: %.2f" % (last_price, close_price, price_rate))
         if not self.last_calculated_time or (kline.timestamp / 1000 - last_calculated_time) > 5:
-            self.calculate(last_klines)
+            sig_matrix = self.calculate(last_klines)
             last_calculated_time = kline.timestamp / 1000
             logger.info("last_klines: ", last_klines.tail(2), caller=self)
         
@@ -286,17 +278,17 @@ class MAMixStrategy:
     async def on_event_order_update(self, order: Order):
         """ 订单状态更新
         """
-        logger.debug("order update:", order, caller=self)
+        logger.info("order update:", order, caller=self)
 
     async def on_event_asset_update(self, asset: Asset):
         """ 资产更新
         """
-        logger.debug("asset update:", asset, caller=self)
+        logger.info("asset update:", asset, caller=self)
 
     async def on_event_position_update(self, position: Position):
         """ 仓位更新
         """
-        logger.debug("position update:", position, caller=self)
+        logger.info("position update:", position, caller=self)
     
     async def on_event_kline_update(self, kline: Kline):
         """ kline更新
